@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/*
+ * AdminHub design tokens (Figma › Design System).
+ * The palette maps 1:1 onto Tailwind's default indigo / slate / emerald /
+ * amber / red / blue scales, so components use the stock utilities
+ * (e.g. bg-indigo-600 = #4F46E5, text-slate-900 = #0F172A).
+ */
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@theme {
+  --shadow-segment: 0px 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.stripe-skeleton {
+  background-color: var(--color-slate-100);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 30%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0.4) 70%,
+    transparent 100%
+  );
+  background-size: 800px 100%;
+  background-repeat: no-repeat;
+  animation: shimmer-bg 2s infinite linear;
+}
+
+@keyframes shimmer-bg {
+  0% {
+    background-position: -800px 0;
+  }
+  100% {
+    background-position: calc(100% + 800px) 0;
+  }
+}
+
+html,
+body {
+  background: var(--color-slate-50);
+  color: var(--color-slate-900);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Figma text uses `line-height: normal` everywhere. */
+p,
+span,
+h1,
+h2,
+h3,
+h4,
+label,
+button,
+a,
+td,
+th {
+  line-height: normal;
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
