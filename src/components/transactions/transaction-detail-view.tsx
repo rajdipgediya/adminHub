@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowLeftRight, Check, Printer, X } from "lucide-react";
+import { ArrowLeftRight, Check, Printer, X, Cpu } from "lucide-react";
 import { usePatchTransaction } from "@/hooks/mutations";
 import { useTransaction, useUser, useUserTransactions } from "@/hooks/queries";
 import { formatCurrency, formatDateTime, formatShortDateTime } from "@/lib/format";
@@ -116,7 +116,12 @@ export function TransactionDetailView({ id }: { id: number }) {
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-8 items-center justify-center rounded bg-indigo-600 text-white font-bold text-lg">A</div>
+                  <div
+                    className="flex size-8 items-center justify-center rounded-lg bg-indigo-600"
+                    style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+                  >
+                    <Cpu className="size-[18px] text-white" strokeWidth={2} />
+                  </div>
                   <span className="text-xl font-bold text-slate-900">AdminHub</span>
                 </div>
                 <div className="text-sm text-slate-500 mt-2">

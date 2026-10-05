@@ -1,93 +1,69 @@
-# AdminHub — Admin Dashboard
+# AdminHub Frontend (Practical Assessment)
 
-A responsive admin dashboard built from the AdminHub Figma design: Dashboard, Users, Transactions and Bookings, plus a detail view for each record. Desktop matches the 1440px frames; below 1024px the app switches to the mobile frames (branded top bar, slide-in drawer, bottom tab bar, card lists).
+Hey! This is my submission for the AdminHub frontend assessment. I built out the dashboard, users, transactions, and bookings views based on the provided Figma designs. 
 
-## Tech stack
+I set it up to be fully responsive. It matches the 1440px desktop frames, but when you scale down past 1024px it drops into the mobile layout (with the drawer and bottom tab bar).
 
-- **Next.js 16** (App Router) + **React 19** + **TypeScript**
-- **Tailwind CSS v4**: the Figma palette is Tailwind's default indigo / slate / emerald / amber / red / blue, so components use the stock utilities
-- **TanStack Query v5** for API data (fetching, caching, mutations)
-- **Redux Toolkit** for client-side app state
-- **Recharts** for the desktop revenue chart
-- **lucide-react** for icons (the Figma file uses Lucide). Custom icons such as the mobile bottom-nav set are exported SVGs in `public/figma/`
+### Tools used
+- **Next.js 16** (App Router) + React 19 + TypeScript
+- **Tailwind CSS v4** (I just used standard Tailwind colors like indigo/slate since they match the Figma palette perfectly)
+- **TanStack Query v5** to handle all the async data, caching, and optimistic updates
+- **Redux Toolkit** for local UI state (filters, sidebars, etc.)
+- **Recharts** for the revenue chart
+- **lucide-react** for most icons, though I exported some custom SVGs for the mobile nav in `public/figma/`
 
-## Getting started
+### How to run it
 
-Requires Node.js 20.9+.
+Make sure you're on Node 20.9+. 
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
-npm run build && npm start   # production build
-npm run lint
+npm run dev
 ```
+It runs on `http://localhost:3000`. You don't need to configure any env vars. By default it talks to DummyJSON, but you can override it with `NEXT_PUBLIC_API_BASE_URL` if you want.
 
-There are no API keys or env vars to set. `NEXT_PUBLIC_API_BASE_URL` can optionally point at another DummyJSON-compatible host (defaults to `https://dummyjson.com`).
+### API & Data Fetching Approach
 
-## Public APIs used
+I used [DummyJSON](https://dummyjson.com) to populate the tables since it's easy and fast:
+- `/users` for the user directory
+- `/carts` acts as our transactions 
+- `/todos` acts as our bookings
 
-| API | Used for |
-| --- | --- |
-| [DummyJSON](https://dummyjson.com) `/users`, `/users/:id`, `/users/add`, `PUT/DELETE /users/:id` | Users directory, user detail, add / edit / delete user |
-| DummyJSON `/carts`, `/carts/:id`, `/carts/user/:id` | Transactions (each cart is a transaction), customer ledger |
-| DummyJSON `/todos`, `/todos/:id`, `/todos/user/:id`, `/todos/add` | Bookings (each todo is a booking), customer booking history |
-| [randomuser.me portraits](https://randomuser.me) | Profile photos, picked by each DummyJSON user's id and gender |
+Since DummyJSON obviously doesn't have custom "AdminHub" roles or transaction statuses, I wrote a mapper layer in `src/lib/api/mappers.ts`. It takes the raw DummyJSON data and transforms it into the strict Domain Models the UI actually expects. I seeded derived fields (like status) off the record IDs so they remain consistent across reloads. 
 
-DummyJSON has no admin roles, account status, transaction types or bookings. `src/lib/api/mappers.ts` turns its records into the models the design needs. Every derived field (status, dates, service, and so on) is seeded from the record id, so a record looks the same on every load. Dates are relative to today, so the dashboard always looks current.
+All API calls are wrapped in TanStack Query. I load the lists once and cache them. When you click into a detail view, it uses `initialData` from the cache so the page loads instantly while it refetches in the background. Mutations (like refunding or adding a user) optimistically update the cache so the UI reacts immediately, though DummyJSON doesn't actually save the writes so they'll reset on hard refresh.
 
-DummyJSON doesn't save writes. Mutations send the real request and then apply the response to the TanStack Query cache, so changes show up immediately but are lost on reload.
+### State Management Approach
 
-## State management (Redux Toolkit)
+I kept API state completely separate from UI state. 
+- TanStack Query handles everything from the server.
+- Redux Toolkit (`src/store/`) only handles client-side stuff:
+  - `uiSlice`: tracking if the mobile drawer is open, active tabs, etc.
+  - `filtersSlice`: stores the current search queries and table filters. Putting this in Redux means if you filter the table, click a user, and hit back, your filters are still there!
+  - `selectionSlice`: tracks bulk-selected rows.
 
-`src/store/` holds only client/UI state, which the API knows nothing about:
+### Folder Structure
 
-- `uiSlice`: mobile drawer open/closed, active dashboard tab, revenue chart range, dashboard settings toggles
-- `filtersSlice`: search, filter, sort and page for Users, Transactions and Bookings. Changing any filter resets that list to page 1. Because this lives in the store, filters survive moving to a detail page and back, and the top-bar search can set the Users search from any page.
-- `selectionSlice`: bulk-selected user ids, plus role/status changes made by bulk actions (Change Role, Suspend, Reactivate)
-
-Components use the typed `useAppSelector` / `useAppDispatch` hooks.
-
-## Data fetching (TanStack Query)
-
-- **API code is separate from the UI.** `src/lib/api/client.ts` wraps `fetch` and throws a typed `ApiError`. `endpoints.ts` calls DummyJSON and maps the results. `src/hooks/queries.ts` exposes one hook per resource with shared `queryKeys`.
-- **Lists:** each collection is fetched once (`?limit=0`; at most 254 records) and cached for 5 minutes. `src/hooks/listings.ts` then filters, sorts and paginates it in memoized hooks driven by the Redux filters, so every combination of search, role, status, date, type and amount works together. DummyJSON can't combine these on the server.
-- **Detail pages** start from the cached list (`initialData`), so moving from a table to a detail page is instant, then refresh from `/resource/:id`. A 404 is not retried and shows a "not found" state.
-- **Joins:** transactions and bookings are joined to their customer through a memoized `Map` built from the cached users list.
-- **Mutations** (`src/hooks/mutations.ts`): add / edit / delete user, refund transaction, cancel / reschedule booking. Each one updates both the list cache and the detail cache.
-
-## UI states
-
-Every data view handles:
-
-- **Loading:** skeleton rows, cards and charts
-- **Error:** message plus "Try again", which refetches
-- **Empty:** for no records, and for "no matches" with a "Clear filters" action
-- **Pagination:** Previous / Next are disabled at the first and last page
-- **Disabled actions:** for example, Refund is disabled for refunds and non-completed payments, and Reschedule / Cancel for completed or cancelled bookings
-- **Active / selected:** nav items, tabs, filter options, table row selection and the bulk-action bar
-
-## Project structure
-
-```
+Quick overview of how I laid things out:
+```text
 src/
-  app/                    routes (App Router); (app)/ group shares the shell
+  app/                    # Next.js App Router setup
   components/
-    layout/               sidebar, top bar, mobile nav / drawer / bottom tabs
-    ui/                   design-system primitives (badge, button, card, table, dialog…)
-    dashboard/ users/ transactions/ bookings/   feature views
-  hooks/                  queries, mutations, derived listings & stats
-  lib/                    api client + mappers, formatters, csv export
-  store/                  Redux Toolkit slices
-  types/                  domain models
-public/figma/             assets exported from the Figma file
+    layout/               # Shared shell (sidebar, topbar, mobile nav)
+    ui/                   # Reusable base components (buttons, cards, tables)
+    dashboard/            # Feature-specific components
+    users/                
+    ...
+  hooks/                  # Custom react-query hooks and derived logic
+  lib/                    # API client, mappers, formatters
+  store/                  # Redux slices
+  types/                  # TS interfaces
 ```
 
-## Notes on design fidelity
+### A few extra notes on the design
+- I noticed the Figma file was a bit contradictory in a few places (like the subtitle font size fluctuating between 12px and 13px), so I just normalized it to the majority usage.
+- I skipped drawing the fake iOS status bar on the mobile screens since we're rendering in an actual browser.
+- For the mobile cards, I used a bottom divider instead of the 4-sided outline to keep it consistent with the desktop layout.
+- You can find a sample of the generated transaction print layout I made in `public/Sample_receipt_AdminHub.pdf`.
 
-- Desktop and mobile layouts are built separately from the matching Figma frames. Mobile is a different layout, not a scaled-down desktop.
-- Where the Figma file contradicts itself, the app follows the majority of frames. For example, the subtitle under the page title is 12px in most frames and 13px in a few.
-- **Not copied from the design:**
-  - the iOS status bar drawn in the mobile detail frames
-  - rows outlined on all four sides in the mobile detail cards; they use a bottom divider like the desktop cards
-  - an empty 36px button on mobile Transactions, which is now an Export CSV button
-- Date filters default to "All Time" because the generated data spans several months.
+Let me know if you have any questions about the setup!

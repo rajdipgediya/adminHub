@@ -4,7 +4,6 @@ import { useState, type ReactNode } from "react";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider as ReduxProvider } from "react-redux";
 import { makeStore, type AppStore } from "@/store";
 import { ApiError } from "@/lib/api/client";
@@ -40,7 +39,6 @@ export function Providers({ children }: { children: ReactNode }) {
         persistOptions={{ persister }}
       >
         {children}
-        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
       </PersistQueryClientProvider>
     </ReduxProvider>
   );
