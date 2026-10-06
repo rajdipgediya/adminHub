@@ -58,7 +58,7 @@ function Overview() {
           <RevenueChartCard />
           <RecentTransactionsCard />
         </div>
-        <div className="flex w-full flex-col gap-6 xl:w-[360px] xl:shrink-0">
+        <div className="flex w-full flex-col gap-6 xl:w-[480px] xl:shrink-0">
           <SystemAlertsCard />
           <SystemHealthCard />
         </div>
